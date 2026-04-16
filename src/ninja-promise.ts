@@ -155,20 +155,101 @@ const Options = class {} as {
   };
 };
 
-const NinjaPromise = class NinjaPromise<T> extends Options<T> implements PromiseLike<T> {
+/**
+ * {@link NinjaPromise} のコンストラクター型です。
+ */
+export interface NinjaPromiseConstructor {
+  // ES2015
+
+  /**
+   * NinjaPromise の新しいインスタンスを作成します。
+   *
+   * @param executor resolve および reject 関数を引数として受け取る関数です。この関数はコンストラクター内で即座に実行されます。
+   */
+  new <T>(
+    executor: (
+      resolve: (value: T | PromiseLike<T>) => void,
+      reject: (reason?: unknown) => void,
+    ) => void,
+  ): NinjaPromise<T>;
+
+  /**
+   * 既に拒否状態となっている NinjaPromise インスタンスを作成します。
+   *
+   * @template T NinjaPromise が期待していた値の型です。
+   * @param reason 拒否の理由です。
+   * @returns 拒否状態の NinjaPromise です。
+   */
+  reject<T = never>(reason?: unknown): RejectedNinjaPromise<T>;
+
+  /**
+   * 既に解決状態となっている NinjaPromise インスタンスを作成します。
+   *
+   * @returns 解決状態の NinjaPromise です。
+   */
+  resolve(): FulfilledNinjaPromise<undefined>;
+
+  /**
+   * 既に解決状態となっている NinjaPromise インスタンスを作成します。
+   *
+   * @template T 解決される値の型です。
+   * @param value 解決に用いる値です。
+   * @returns 解決状態の NinjaPromise です。
+   */
+  resolve<T>(value: T): FulfilledNinjaPromise<Awaited<T>>;
+
+  // ES2024
+
+  /**
+   * NinjaPromise と、それを外部から制御するためのリゾルバー（resolve/reject）を作成します。
+   *
+   * @template T NinjaPromise が解決された際の値の型です。
+   * @returns NinjaPromise とリゾルバーを含むオブジェクトです。
+   */
+  withResolvers<T>(): NinjaPromiseWithResolvers<T>;
+
+  // ES2025
+
   /**
    * 指定された関数を実行し、その結果を NinjaPromise として返します。
    *
    * 関数が同期的に例外を投げた場合、拒否状態の NinjaPromise を返します。
    *
    * @template T 関数の戻り値の型です。
+   * @template TArgs 関数に渡す引数の型配列です。
    * @param callbackFn 実行するコールバック関数です。
+   * @param args 関数に渡す引数です。
    * @returns 実行結果をラップした NinjaPromise です。
    */
-  public static try<T>(callbackFn: () => T | PromiseLike<T>): NinjaPromise<Awaited<T>> {
+  try<T, U extends unknown[]>(
+    callbackFn: (...args: U) => T | PromiseLike<T>,
+    ...args: U
+  ): NinjaPromise<Awaited<T>>;
+}
+
+// @ts-expect-error
+const NinjaPromise: NinjaPromiseConstructor = class NinjaPromise<T>
+  extends Options<T>
+  implements PromiseLike<T>
+{
+  /**
+   * 指定された関数を実行し、その結果を NinjaPromise として返します。
+   *
+   * 関数が同期的に例外を投げた場合、拒否状態の NinjaPromise を返します。
+   *
+   * @template T 関数の戻り値の型です。
+   * @template TArgs 関数に渡す引数の型配列です。
+   * @param callbackFn 実行するコールバック関数です。
+   * @param args 関数に渡す引数です。
+   * @returns 実行結果をラップした NinjaPromise です。
+   */
+  public static try<T, U extends unknown[]>(
+    callbackFn: (...args: U) => T | PromiseLike<T>,
+    ...args: U
+  ): NinjaPromise<Awaited<T>> {
     let value;
     try {
-      value = callbackFn();
+      value = callbackFn(...args);
       if (!isPromiseLike(value)) {
         return this.resolve(value) as NinjaPromise<Awaited<T>>;
       }
@@ -259,7 +340,7 @@ const NinjaPromise = class NinjaPromise<T> extends Options<T> implements Promise
   constructor(
     executor: (
       resolve: (value: T | PromiseLike<T>) => void,
-      reject: (reason?: any) => void,
+      reject: (reason?: unknown) => void,
     ) => void,
   ) {
     super();
