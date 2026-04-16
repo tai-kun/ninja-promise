@@ -22,7 +22,7 @@ describe("NinjaPromise の状態遷移と基本動作", () => {
 
     // Assert
     expect(promise.status).toBe("fulfilled");
-    expect(promise.value).toBe("ok");
+    expect((promise as FulfilledNinjaPromise<string>).value).toBe("ok");
   });
 
   test("executor 内で reject されると rejected 状態になり、拒否された理由を持つ", ({ expect }) => {
@@ -33,7 +33,7 @@ describe("NinjaPromise の状態遷移と基本動作", () => {
 
     // Assert
     expect(promise.status).toBe("rejected");
-    expect(promise.reason).toBe("error");
+    expect((promise as RejectedNinjaPromise).reason).toBe("error");
   });
 
   test("一度 settled 状態になった後は、後続の resolve 呼び出しを無視する", ({ expect }) => {
@@ -44,7 +44,7 @@ describe("NinjaPromise の状態遷移と基本動作", () => {
     });
 
     // Assert
-    expect(promise.value).toBe("first");
+    expect((promise as FulfilledNinjaPromise<string>).value).toBe("first");
   });
 
   test("executor 内で例外が発生したとき、自動的に rejected 状態になる", ({ expect }) => {
@@ -58,7 +58,7 @@ describe("NinjaPromise の状態遷移と基本動作", () => {
 
     // Assert
     expect(promise.status).toBe("rejected");
-    expect(promise.reason).toBe(error);
+    expect((promise as RejectedNinjaPromise).reason).toBe(error);
   });
 });
 
@@ -102,7 +102,7 @@ describe("静的メソッドによるインスタンス生成", () => {
 
     // Assert
     expect(promise.status).toBe("fulfilled");
-    expect(promise.value).toBe(10);
+    expect((promise as FulfilledNinjaPromise<number>).value).toBe(10);
   });
 
   test("try 内で例外が投げられたとき、拒否されたインスタンスを返す", ({ expect }) => {
@@ -113,7 +113,7 @@ describe("静的メソッドによるインスタンス生成", () => {
 
     // Assert
     expect(promise.status).toBe("rejected");
-    expect(promise.reason).toBe("exception");
+    expect((promise as RejectedNinjaPromise).reason).toBe("exception");
   });
 });
 
