@@ -1,3 +1,5 @@
+// oxlint-disable typescript/unbound-method
+
 import { describe, test } from "vitest";
 
 import NinjaPromise, {
@@ -247,5 +249,93 @@ describe("境界値と特殊な相互運用", () => {
     expect(results[0]).toBe(1);
     expect(results[1]).toBe(2);
     expect(results[2]).toBe(3);
+  });
+});
+
+describe("toPromise によるネイティブ Promise 変換", () => {
+  test("fulfilled 状態の NinjaPromise をネイティブ Promise に変換したとき、同じ値で解決される", async ({
+    expect,
+  }) => {
+    // Arrange
+    const ninjaPromise = NinjaPromise.resolve("success");
+
+    // Act
+    const promise = ninjaPromise.toPromise();
+
+    // Assert
+    await expect(promise).resolves.toBe("success");
+    expect(promise).toBeInstanceOf(Promise);
+  });
+
+  test("rejected 状態の NinjaPromise をネイティブ Promise に変換したとき、同じ理由で拒否される", async ({
+    expect,
+  }) => {
+    // Arrange
+    const ninjaPromise = NinjaPromise.reject("fail");
+
+    // Act
+    const promise = ninjaPromise.toPromise();
+
+    // Assert
+    await expect(promise).rejects.toBe("fail");
+    expect(promise).toBeInstanceOf(Promise);
+  });
+
+  test("pending 状態の NinjaPromise をネイティブ Promise に変換したとき、解決を待機する", async ({
+    expect,
+  }) => {
+    // Arrange
+    const { promise: ninjaPromise, resolve } = NinjaPromise.withResolvers<string>();
+
+    // Act
+    const promise = ninjaPromise.toPromise();
+
+    // Assert
+    resolve("done");
+    await expect(promise).resolves.toBe("done");
+  });
+
+  test("toPromise を複数回呼び出したとき、それぞれ独立した Promise インスタンスを返す", ({
+    expect,
+  }) => {
+    // Arrange
+    const ninjaPromise = NinjaPromise.resolve("value");
+
+    // Act
+    const promise1 = ninjaPromise.toPromise();
+    const promise2 = ninjaPromise.toPromise();
+
+    // Assert
+    expect(promise1).toBeInstanceOf(Promise);
+    expect(promise2).toBeInstanceOf(Promise);
+    expect(promise1).not.toBe(promise2);
+  });
+
+  test("then チェーン後の NinjaPromise を変換したとき、変換後の状態を正しく反映する", async ({
+    expect,
+  }) => {
+    // Arrange
+    const ninjaPromise = NinjaPromise.resolve(10).then((v) => v * 3);
+
+    // Act
+    const promise = ninjaPromise.toPromise();
+
+    // Assert
+    await expect(promise).resolves.toBe(30);
+  });
+
+  test("then 内で例外が発生した NinjaPromise を変換したとき、reject された Promise を返す", async ({
+    expect,
+  }) => {
+    // Arrange
+    const ninjaPromise = NinjaPromise.resolve().then(() => {
+      throw new Error("conversion failure");
+    });
+
+    // Act
+    const promise = ninjaPromise.toPromise();
+
+    // Assert
+    await expect(promise).rejects.toThrow("conversion failure");
   });
 });

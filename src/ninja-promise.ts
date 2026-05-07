@@ -19,6 +19,13 @@ interface BaseNinjaPromise<T> {
     onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
   ): NinjaPromise<TResult1 | TResult2>;
+
+  /**
+   * NinjaPromise をネイティブの Promise に変換します。
+   *
+   * @returns ネイティブの Promise オブジェクトです。
+   */
+  toPromise(): Promise<T>;
 }
 
 /**
@@ -108,7 +115,7 @@ export interface NinjaPromiseWithResolvers<T> {
 /**
  * NinjaPromise が取り得る状態のユニオン型です。
  */
-type NinjaPromiseState = "pending" | "fulfilled" | "rejected";
+type NinjaPromiseStatus = NinjaPromise<unknown>["status"];
 
 /**
  * then メソッドで登録されるコールバックと、それに関連する解決・拒否関数を保持する型です。
@@ -325,7 +332,7 @@ const NinjaPromise: NinjaPromiseConstructor = class NinjaPromise<T>
   /**
    * 現在の NinjaPromise の状態です。
    */
-  #status: NinjaPromiseState = "pending";
+  #status: NinjaPromiseStatus = "pending";
 
   /**
    * 解決または拒否を待機しているコールバックのキューです。
@@ -462,7 +469,7 @@ const NinjaPromise: NinjaPromiseConstructor = class NinjaPromise<T>
   /**
    * 現在の NinjaPromise の状態です。
    */
-  public get status(): NinjaPromiseState {
+  public get status(): NinjaPromiseStatus {
     return this.#status;
   }
 
@@ -499,6 +506,15 @@ const NinjaPromise: NinjaPromiseConstructor = class NinjaPromise<T>
     this.#processQueue();
 
     return nextPromise as NinjaPromise<TResult1 | TResult2>;
+  }
+
+  /**
+   * NinjaPromise をネイティブの Promise に変換します。
+   *
+   * @returns ネイティブの Promise オブジェクトです。
+   */
+  public toPromise(): Promise<T> {
+    return Promise.resolve(this);
   }
 };
 
