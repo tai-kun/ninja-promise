@@ -11,7 +11,7 @@
 
   // Oxc
 
-  "oxc.path.node": "/home/taikun/.local/share/mise/installs/node/22/bin/node",
+  "oxc.path.node": "/home/taikun/.local/share/mise/installs/node/24/bin/node",
 
   "oxc.path.oxfmt": "./node_modules/.bin/oxfmt",
   "oxc.path.oxlint": "./node_modules/.bin/oxlint",

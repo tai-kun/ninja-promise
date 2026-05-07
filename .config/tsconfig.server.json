@@ -1,8 +1,8 @@
 {
-  "extends": ["@tsconfig/node22", "@tsconfig/strictest"],
+  "extends": ["@tsconfig/node24", "@tsconfig/strictest"],
   "include": ["./global.d.ts", "../tests/**/*.server.test.ts"],
   "compilerOptions": {
-    "types": ["node"],
+    "types": ["node", "vite/client"],
     "lib": ["ESNext"],
     "noEmit": true,
     "target": "es2020",
