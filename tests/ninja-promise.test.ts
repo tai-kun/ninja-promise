@@ -87,7 +87,6 @@ describe("静的メソッドによるインスタンス生成", () => {
     expect,
   }) => {
     // Arrange
-    // oxlint-disable-next-line typescript/unbound-method
     const { promise, resolve } = NinjaPromise.withResolvers<string>();
 
     // Act
@@ -202,7 +201,6 @@ describe("then メソッドによるチェーンと非同期処理", () => {
 describe("境界値と特殊な相互運用", () => {
   test("自分自身で解決しようとしたとき、TypeError で拒否される", async ({ expect }) => {
     // Arrange
-    // oxlint-disable-next-line typescript/unbound-method
     const { promise, resolve } = NinjaPromise.withResolvers();
 
     // Act

@@ -29,7 +29,7 @@ interface BaseNinjaPromise<T> {
 }
 
 /**
- * 待機状態（pending）にある NinjaPromise を表すインターフェースです。
+ * 待機状態にある NinjaPromise を表すインターフェースです。
  *
  * @template T 非同期処理の結果として返される値の型です。
  */
@@ -41,7 +41,7 @@ export interface PendingNinjaPromise<T> extends BaseNinjaPromise<T> {
 }
 
 /**
- * 完了状態（fulfilled）にある NinjaPromise を表すインターフェースです。
+ * 完了状態にある NinjaPromise を表すインターフェースです。
  *
  * @template T 非同期処理の結果として返される値の型です。
  */
@@ -58,7 +58,7 @@ export interface FulfilledNinjaPromise<T> extends BaseNinjaPromise<T> {
 }
 
 /**
- * 拒否状態（rejected）にある NinjaPromise を表すインターフェースです。
+ * 拒否状態にある NinjaPromise を表すインターフェースです。
  *
  * @template T 非同期処理の結果として期待されていた値の型です。
  */
@@ -69,7 +69,7 @@ export interface RejectedNinjaPromise<T = never> extends BaseNinjaPromise<T> {
   status: "rejected";
 
   /**
-   * 拒否された理由（エラー内容）です。
+   * 拒否された理由です。
    */
   reason: unknown;
 }
@@ -98,18 +98,18 @@ export interface NinjaPromiseWithResolvers<T> {
   promise: NinjaPromise<T>;
 
   /**
-   * NinjaPromise を解決（resolve）させる関数です。
+   * NinjaPromise を解決させる関数です。
    *
    * @param value 解決に用いる値です。
    */
-  resolve(value: T | PromiseLike<T>): void;
+  resolve: (value: T | PromiseLike<T>) => void;
 
   /**
-   * NinjaPromise を拒否（reject）させる関数です。
+   * NinjaPromise を拒否させる関数です。
    *
    * @param reason 拒否の理由です。
    */
-  reject(reason?: unknown): void;
+  reject: (reason?: unknown) => void;
 }
 
 /**
@@ -156,7 +156,7 @@ const Options = class {} as {
     value?: T;
 
     /**
-     * 拒否された理由（エラー内容）です。
+     * 拒否された理由です。
      */
     reason?: unknown;
   };
@@ -208,7 +208,7 @@ export interface NinjaPromiseConstructor {
   // ES2024
 
   /**
-   * NinjaPromise と、それを外部から制御するためのリゾルバー（resolve/reject）を作成します。
+   * NinjaPromise と、それを外部から制御するためのリゾルバーを作成します。
    *
    * @template T NinjaPromise が解決された際の値の型です。
    * @returns NinjaPromise とリゾルバーを含むオブジェクトです。
@@ -309,7 +309,7 @@ const NinjaPromise: NinjaPromiseConstructor = class NinjaPromise<T>
   }
 
   /**
-   * NinjaPromise と、それを外部から制御するためのリゾルバー（resolve/reject）を作成します。
+   * NinjaPromise と、それを外部から制御するためのリゾルバーを作成します。
    *
    * @template T NinjaPromise が解決された際の値の型です。
    * @returns NinjaPromise とリゾルバーを含むオブジェクトです。
