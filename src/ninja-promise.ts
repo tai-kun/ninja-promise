@@ -1,4 +1,4 @@
-import { isPromiseLike } from "@tai-kun/is-promise-like";
+import { isThenable } from "maypromise";
 
 /**
  * NinjaPromise の基本型です。
@@ -257,7 +257,7 @@ const NinjaPromise: NinjaPromiseConstructor = class NinjaPromise<T>
     let value;
     try {
       value = callbackFn(...args);
-      if (!isPromiseLike(value)) {
+      if (!isThenable(value)) {
         return this.resolve(value) as NinjaPromise<Awaited<T>>;
       }
     } catch (ex) {
@@ -400,7 +400,7 @@ const NinjaPromise: NinjaPromiseConstructor = class NinjaPromise<T>
       return;
     }
 
-    if (!isPromiseLike(value)) {
+    if (!isThenable(value)) {
       // 値による解決を行います。
       this.#status = "fulfilled";
       this.value = value;
