@@ -34,18 +34,18 @@
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
     "@tsconfig/strictest": "^2.0.8",
-    "@types/node": "^24.13.1",
+    "@types/node": "^24.13.2",
     "@valibot/i18n": "^1.2.0",
-    "@vitest/browser": "^4.1.8",
-    "@vitest/browser-playwright": "^4.1.8",
+    "@vitest/browser": "^4.1.9",
+    "@vitest/browser-playwright": "^4.1.9",
     "npm-check-updates": "^20.0.2",
-    "oxfmt": "^0.54.0",
-    "oxlint": "^1.69.0",
+    "oxfmt": "^0.55.0",
+    "oxlint": "^1.70.0",
     "oxlint-tsgolint": "^0.23.0",
-    "playwright": "^1.60.0",
+    "playwright": "^1.61.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   },
   "readme": "README.md"
 }
