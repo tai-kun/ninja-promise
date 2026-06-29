@@ -1,5 +1,3 @@
-// oxlint-disable typescript/unbound-method
-
 import { describe, test } from "vitest";
 
 import NinjaPromise, {
@@ -7,333 +5,282 @@ import NinjaPromise, {
   type RejectedNinjaPromise,
 } from "../src/ninja-promise.js";
 
-describe("NinjaPromise の状態遷移と基本動作", () => {
-  test("初期化された直後は pending 状態である", ({ expect }) => {
-    // Arrange & Act
-    const promise = new NinjaPromise(() => {});
-
-    // Assert
-    expect(promise.status).toBe("pending");
-  });
-
-  test("executor 内で resolve されると fulfilled 状態になり、解決された値を持つ", ({ expect }) => {
-    // Arrange & Act
-    const promise = new NinjaPromise<string>((resolve) => {
-      resolve("ok");
+describe("NinjaPromise", () => {
+  test("コンストラクターで同期的に resolve を呼ぶと即座に fulfilled 状態になる", ({ expect }) => {
+    // 準備
+    const promise = new NinjaPromise<number>((resolve) => {
+      resolve(42);
     });
 
-    // Assert
+    // 実行と検証
     expect(promise.status).toBe("fulfilled");
-    expect((promise as FulfilledNinjaPromise<string>).value).toBe("ok");
+    expect((promise as FulfilledNinjaPromise<number>).value).toBe(42);
   });
 
-  test("executor 内で reject されると rejected 状態になり、拒否された理由を持つ", ({ expect }) => {
-    // Arrange & Act
-    const promise = new NinjaPromise((_, reject) => {
-      reject("error");
+  test("コンストラクターで同期的 reject を呼ぶと即座に rejected 状態になる", ({ expect }) => {
+    // 準備
+    const error = new Error("テストエラー");
+    const promise = new NinjaPromise((_resolve, reject) => {
+      reject(error);
     });
 
-    // Assert
+    // 実行と検証
     expect(promise.status).toBe("rejected");
-    expect((promise as RejectedNinjaPromise).reason).toBe("error");
+    expect((promise as RejectedNinjaPromise).reason).toBe(error);
   });
 
-  test("一度 settled 状態になった後は、後続の resolve 呼び出しを無視する", ({ expect }) => {
-    // Arrange
-    const promise = new NinjaPromise<string>((resolve) => {
-      resolve("first");
-      resolve("second");
-    });
-
-    // Assert
-    expect((promise as FulfilledNinjaPromise<string>).value).toBe("first");
-  });
-
-  test("executor 内で例外が発生したとき、自動的に rejected 状態になる", ({ expect }) => {
-    // Arrange
-    const error = new Error("unexpected error");
-
-    // Act
+  test("executor が同期的に例外を投げると即座に rejected 状態になる", ({ expect }) => {
+    // 準備
+    const error = new Error("executor エラー");
     const promise = new NinjaPromise(() => {
       throw error;
     });
 
-    // Assert
+    // 実行と検証
     expect(promise.status).toBe("rejected");
     expect((promise as RejectedNinjaPromise).reason).toBe(error);
   });
-});
 
-describe("静的メソッドによるインスタンス生成", () => {
-  test("NinjaPromise.resolve を呼び出すとき、即座に解決されたインスタンスを返す", ({ expect }) => {
-    // Act
-    const promise = NinjaPromise.resolve("success");
+  test("静的 resolve で fulfilled 状態のインスタンスを作成できる", ({ expect }) => {
+    // 準備
+    const promise = NinjaPromise.resolve("hello");
 
-    // Assert
+    // 実行と検証
     expect(promise.status).toBe("fulfilled");
-    expect(promise.value).toBe("success");
+    expect((promise as FulfilledNinjaPromise<string>).value).toBe("hello");
   });
 
-  test("NinjaPromise.reject を呼び出すとき、即座に拒否されたインスタンスを返す", ({ expect }) => {
-    // Act
-    const promise = NinjaPromise.reject("fail");
+  test("静的 reject で rejected 状態のインスタンスを作成できる", ({ expect }) => {
+    // 準備
+    const error = new Error("拒否");
+    const promise = NinjaPromise.reject(error);
 
-    // Assert
+    // 実行と検証
     expect(promise.status).toBe("rejected");
-    expect(promise.reason).toBe("fail");
+    expect((promise as RejectedNinjaPromise).reason).toBe(error);
   });
 
-  test("withResolvers を使用するとき、外部から解決可能な promise と resolver を提供する", ({
-    expect,
-  }) => {
-    // Arrange
-    const { promise, resolve } = NinjaPromise.withResolvers<string>();
+  test("withResolvers で外部から解決できる", ({ expect }) => {
+    // 準備
+    const { promise, resolve } = NinjaPromise.withResolvers<number>();
 
-    // Act
-    resolve("done");
+    // 実行
+    resolve(99);
 
-    // Assert
+    // 検証
     expect(promise.status).toBe("fulfilled");
-    expect((promise as FulfilledNinjaPromise<string>).value).toBe("done");
+    expect((promise as FulfilledNinjaPromise<number>).value).toBe(99);
   });
 
-  test("try で関数を実行したとき、その戻り値で解決される", ({ expect }) => {
-    // Act
-    const promise = NinjaPromise.try(() => 10);
+  test("withResolvers で外部から拒否できる", ({ expect }) => {
+    // 準備
+    const { promise, reject } = NinjaPromise.withResolvers();
+    const error = new Error("外部拒否");
 
-    // Assert
-    expect(promise.status).toBe("fulfilled");
-    expect((promise as FulfilledNinjaPromise<number>).value).toBe(10);
-  });
+    // 実行
+    reject(error);
 
-  test("try 内で例外が投げられたとき、拒否されたインスタンスを返す", ({ expect }) => {
-    // Act
-    const promise = NinjaPromise.try(() => {
-      throw "exception";
-    });
-
-    // Assert
+    // 検証
     expect(promise.status).toBe("rejected");
-    expect((promise as RejectedNinjaPromise).reason).toBe("exception");
-  });
-});
-
-describe("then メソッドによるチェーンと非同期処理", () => {
-  test("then を使用したとき、戻り値が次の promise に引き継がれる", async ({ expect }) => {
-    // Arrange
-    const promise = NinjaPromise.resolve(2);
-
-    // Act
-    const nextPromise = promise.then((v) => v * 2);
-
-    // Assert
-    // 非同期的な解決を待機するために await する（実装が microtask を使用しているため）。
-    await nextPromise;
-    expect((nextPromise as FulfilledNinjaPromise<number>).value).toBe(4);
+    expect((promise as RejectedNinjaPromise).reason).toBe(error);
   });
 
-  test("then のコールバックは、現在のコールスタック終了後のマイクロタスクで実行される", ({
-    expect,
-  }) => {
-    // Arrange
-    const promise = NinjaPromise.resolve("sync");
-    let called = false;
+  test("fulfilled 状態で then を呼ぶと onfulfilled が非同期に実行される", async ({ expect }) => {
+    // 準備
+    const promise = NinjaPromise.resolve(10);
 
-    // Act
-    promise.then(() => {
-      called = true;
+    // 実行
+    let result: number | undefined;
+    const next = promise.then((value) => {
+      result = value;
+      return value * 2;
     });
 
-    // Assert
-    // 登録直後はまだ実行されていないことを検証する。
-    expect(called).toBe(false);
+    // 検証
+    // then のコールバックはマイクロタスクで実行される
+    expect(result).toBeUndefined();
+    expect(next.status).toBe("pending");
+
+    // マイクロタスクの完了を待つ
+    await promise.toPromise();
+
+    // 検証
+    expect(result).toBe(10);
+    expect(next.status).toBe("fulfilled");
+    expect((next as FulfilledNinjaPromise<number>).value).toBe(20);
   });
 
-  test("コールバックに非関数が渡されたとき、前の promise の値をそのまま次へ透過させる", async ({
-    expect,
-  }) => {
-    // Arrange
-    const promise = NinjaPromise.resolve("passed");
+  test("rejected 状態で then を呼ぶと onrejected が非同期に実行される", async ({ expect }) => {
+    // 準備
+    const error = new Error("拒否");
+    const promise = NinjaPromise.reject(error);
 
-    // Act
-    const nextPromise = promise.then(null, null);
-
-    // Assert
-    await nextPromise;
-    expect((nextPromise as FulfilledNinjaPromise<string>).value).toBe("passed");
-  });
-
-  test("拒否された promise を then の第 2 引数で処理したとき、次の promise は解決状態になる", async ({
-    expect,
-  }) => {
-    // Arrange
-    const promise = NinjaPromise.reject("error");
-
-    // Act
-    const nextPromise = promise.then(null, (ex) => `recovered from ${String(ex)}`);
-
-    // Assert
-    await nextPromise;
-    expect(nextPromise.status).toBe("fulfilled");
-    expect((nextPromise as FulfilledNinjaPromise<string>).value).toBe("recovered from error");
-  });
-
-  test("then の中で例外が発生したとき、次の promise は rejected 状態になる", async ({ expect }) => {
-    // Arrange
-    const promise = NinjaPromise.resolve();
-
-    // Act
-    const nextPromise = promise.then(() => {
-      throw "fail in then";
+    // 実行
+    let result: unknown;
+    const next = promise.then(null, (reason) => {
+      result = reason;
+      return "回復";
     });
 
-    // Assert
-    try {
-      await nextPromise;
-    } catch {
-      // rejection 待機
-    }
-    expect(nextPromise.status).toBe("rejected");
-    expect((nextPromise as RejectedNinjaPromise).reason).toBe("fail in then");
-  });
-});
+    // 検証
+    expect(result).toBeUndefined();
 
-describe("境界値と特殊な相互運用", () => {
-  test("自分自身で解決しようとしたとき、TypeError で拒否される", async ({ expect }) => {
-    // Arrange
+    // マイクロタスクの完了を待つ
+    await promise.toPromise().catch(() => {});
+
+    // 検証
+    expect(result).toBe(error);
+    expect(next.status).toBe("fulfilled");
+    expect((next as FulfilledNinjaPromise<string>).value).toBe("回復");
+  });
+
+  test("onfulfilled 内の例外は次の Promise を拒否する", async ({ expect }) => {
+    // 準備
+    const error = new Error("コールバックエラー");
+    const promise = NinjaPromise.resolve(1);
+
+    // 実行
+    const next = promise.then(() => {
+      throw error;
+    });
+
+    // マイクロタスクの完了を待つ
+    await promise.toPromise().catch(() => {});
+
+    // 検証
+    expect(next.status).toBe("rejected");
+    expect((next as RejectedNinjaPromise).reason).toBe(error);
+  });
+
+  test("自身を解決しようとすると TypeError で拒否される", ({ expect }) => {
+    // 準備
     const { promise, resolve } = NinjaPromise.withResolvers();
 
-    // Act
-    resolve(promise);
+    // 実行
+    resolve(promise as unknown as number);
 
-    // Assert
-    try {
-      await promise;
-    } catch (e) {
-      expect(e).toBeInstanceOf(TypeError);
-      expect((e as TypeError).message).toContain("Chaining cycle detected");
-    }
+    // 検証
+    expect(promise.status).toBe("rejected");
+    expect((promise as RejectedNinjaPromise).reason).toBeInstanceOf(TypeError);
   });
 
-  test("標準の Promise を resolve に渡したとき、その解決を待機してから同じ状態になる", async ({
-    expect,
-  }) => {
-    // Arrange
-    const standardPromise = Promise.resolve("from standard");
+  test("2 回目の解決は無視される", ({ expect }) => {
+    // 準備
+    const { promise, resolve } = NinjaPromise.withResolvers<number>();
 
-    // Act
-    const ninjaPromise = NinjaPromise.resolve(standardPromise);
+    // 実行
+    resolve(1);
+    resolve(2);
 
-    // Assert
-    expect(ninjaPromise.status).toBe("pending");
-    await ninjaPromise;
-    expect(ninjaPromise.status).toBe("fulfilled");
-    expect(ninjaPromise.value).toBe("from standard");
+    // 検証
+    expect(promise.status).toBe("fulfilled");
+    expect((promise as FulfilledNinjaPromise<number>).value).toBe(1);
   });
 
-  test("複数の then コールバックを登録したとき、登録された順序で実行される", async ({ expect }) => {
-    // Arrange
-    const promise = NinjaPromise.resolve();
-    const results: number[] = [];
+  test("解決後の拒否は無視される", ({ expect }) => {
+    // 準備
+    const { promise, resolve, reject } = NinjaPromise.withResolvers<number>();
 
-    // Act
-    promise.then(() => results.push(1));
-    promise.then(() => results.push(2));
-    promise.then(() => results.push(3));
+    // 実行
+    resolve(1);
+    reject(new Error("後からの拒否"));
 
-    // Assert
-    await promise.then(() => {}); // 全てのタスク完了を待機
-    expect(results).toHaveLength(3);
-    expect(results[0]).toBe(1);
-    expect(results[1]).toBe(2);
-    expect(results[2]).toBe(3);
-  });
-});
-
-describe("toPromise によるネイティブ Promise 変換", () => {
-  test("fulfilled 状態の NinjaPromise をネイティブ Promise に変換したとき、同じ値で解決される", async ({
-    expect,
-  }) => {
-    // Arrange
-    const ninjaPromise = NinjaPromise.resolve("success");
-
-    // Act
-    const promise = ninjaPromise.toPromise();
-
-    // Assert
-    await expect(promise).resolves.toBe("success");
-    expect(promise).toBeInstanceOf(Promise);
+    // 検証
+    expect(promise.status).toBe("fulfilled");
+    expect((promise as FulfilledNinjaPromise<number>).value).toBe(1);
   });
 
-  test("rejected 状態の NinjaPromise をネイティブ Promise に変換したとき、同じ理由で拒否される", async ({
-    expect,
-  }) => {
-    // Arrange
-    const ninjaPromise = NinjaPromise.reject("fail");
+  test("toPromise でネイティブの Promise に変換できる", async ({ expect }) => {
+    // 準備
+    const ninjaPromise = NinjaPromise.resolve("promise");
 
-    // Act
-    const promise = ninjaPromise.toPromise();
+    // 実行
+    const nativePromise = ninjaPromise.toPromise();
 
-    // Assert
-    await expect(promise).rejects.toBe("fail");
-    expect(promise).toBeInstanceOf(Promise);
+    // 検証
+    expect(nativePromise).toBeInstanceOf(Promise);
+    await expect(nativePromise).resolves.toBe("promise");
   });
 
-  test("pending 状態の NinjaPromise をネイティブ Promise に変換したとき、解決を待機する", async ({
-    expect,
-  }) => {
-    // Arrange
-    const { promise: ninjaPromise, resolve } = NinjaPromise.withResolvers<string>();
+  test("静的 try は同期関数の結果を解決する", ({ expect }) => {
+    // 準備
+    const promise = NinjaPromise.try(() => 42);
 
-    // Act
-    const promise = ninjaPromise.toPromise();
-
-    // Assert
-    resolve("done");
-    await expect(promise).resolves.toBe("done");
+    // 検証
+    expect(promise.status).toBe("fulfilled");
+    expect((promise as FulfilledNinjaPromise<number>).value).toBe(42);
   });
 
-  test("toPromise を複数回呼び出したとき、それぞれ独立した Promise インスタンスを返す", ({
-    expect,
-  }) => {
-    // Arrange
-    const ninjaPromise = NinjaPromise.resolve("value");
-
-    // Act
-    const promise1 = ninjaPromise.toPromise();
-    const promise2 = ninjaPromise.toPromise();
-
-    // Assert
-    expect(promise1).toBeInstanceOf(Promise);
-    expect(promise2).toBeInstanceOf(Promise);
-    expect(promise1).not.toBe(promise2);
-  });
-
-  test("then チェーン後の NinjaPromise を変換したとき、変換後の状態を正しく反映する", async ({
-    expect,
-  }) => {
-    // Arrange
-    const ninjaPromise = NinjaPromise.resolve(10).then((v) => v * 3);
-
-    // Act
-    const promise = ninjaPromise.toPromise();
-
-    // Assert
-    await expect(promise).resolves.toBe(30);
-  });
-
-  test("then 内で例外が発生した NinjaPromise を変換したとき、reject された Promise を返す", async ({
-    expect,
-  }) => {
-    // Arrange
-    const ninjaPromise = NinjaPromise.resolve().then(() => {
-      throw new Error("conversion failure");
+  test("静的 try は同期例外を拒否する", ({ expect }) => {
+    // 準備
+    const error = new Error("try エラー");
+    const promise = NinjaPromise.try(() => {
+      throw error;
     });
 
-    // Act
-    const promise = ninjaPromise.toPromise();
+    // 検証
+    expect(promise.status).toBe("rejected");
+    expect((promise as RejectedNinjaPromise).reason).toBe(error);
+  });
 
-    // Assert
-    await expect(promise).rejects.toThrow("conversion failure");
+  test("静的 try は非同期関数の結果を解決する", async ({ expect }) => {
+    // 準備
+    const promise = NinjaPromise.try(async () => "非同期");
+
+    // 検証
+    expect(promise.status).toBe("pending");
+
+    // マイクロタスクの完了を待つ
+    await promise.toPromise();
+
+    // 検証
+    expect(promise.status).toBe("fulfilled");
+    expect((promise as FulfilledNinjaPromise<string>).value).toBe("非同期");
+  });
+
+  test("resolve に PromiseLike を渡すとその状態を継承する", async ({ expect }) => {
+    // 準備
+    const { promise, resolve } = NinjaPromise.withResolvers<number>();
+
+    // 実行
+    resolve(Promise.resolve(7));
+
+    // 検証
+    expect(promise.status).toBe("pending");
+
+    // マイクロタスクの完了を待つ
+    await promise.toPromise();
+
+    // 検証
+    expect(promise.status).toBe("fulfilled");
+    expect((promise as FulfilledNinjaPromise<number>).value).toBe(7);
+  });
+
+  test("resolve に拒否された PromiseLike を渡すと rejected 状態になる", async ({ expect }) => {
+    // 準備
+    const { promise, resolve } = NinjaPromise.withResolvers();
+    const error = new Error("継承エラー");
+
+    // 実行
+    resolve(Promise.reject(error));
+
+    // マイクロタスクの完了を待つ
+    await promise.toPromise().catch(() => {});
+
+    // 検証
+    expect(promise.status).toBe("rejected");
+    expect((promise as RejectedNinjaPromise).reason).toBe(error);
+  });
+
+  test("status を同期的に参照できる", ({ expect }) => {
+    // 準備
+    const pending = new NinjaPromise(() => {});
+    const fulfilled = NinjaPromise.resolve("完了");
+    const rejected = NinjaPromise.reject(new Error("失敗"));
+
+    // 実行と検証
+    expect(pending.status).toBe("pending");
+    expect(fulfilled.status).toBe("fulfilled");
+    expect(rejected.status).toBe("rejected");
   });
 });

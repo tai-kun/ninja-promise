@@ -20,7 +20,7 @@
   "oxc.configPath": "./.config/.oxlintrc.json",
   "oxc.fmt.configPath": "./.config/.oxfmtrc.json",
 
-  "[javascript][typescript][typescriptreact][css][html][json][jsonc][yaml][markdown][toml][sql]": {
+  "[javascript][typescript][typescriptreact][css][html][json][jsonc][yaml][toml][sql]": {
     "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.formatOnSave": false,
     "editor.codeActionsOnSave": {

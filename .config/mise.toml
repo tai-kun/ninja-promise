@@ -4,6 +4,7 @@ minimum_release_age = "7d"
 [tools]
 node = "24"
 pnpm = "10"
+opencode = "1"
 
 [tasks.test]
 run = [
@@ -35,7 +36,7 @@ run = [
   "npx tsc --noEmit --project ./.config/tsconfig.config.json",
 ]
 
-[tasks.fmt]
+[tasks.format]
 run = "npx oxfmt --config ./.config/.oxfmtrc.json"
 
 [tasks.lint]
